@@ -20,6 +20,7 @@ import constants
 import internet
 import airline_logos
 import text
+import clock
 
 # Watchdog init to handle disconnecting from WiFi
 w.timeout=16 # timeout in seconds
@@ -80,7 +81,7 @@ while True:
 
     # Case 1: We found a flight that is different than the flight before
     # or we did not have an old flight but we found one now!
-    if flight_id and (old_flight_id == "XXXX"  or flight_id != old_flight_id):
+    if False and flight_id and (old_flight_id == "XXXX"  or flight_id != old_flight_id):
         w.feed()
         is_showing_time = False
         gc.collect()
@@ -128,11 +129,9 @@ while True:
             time.sleep(5)
             gc.collect()
     
-    # Case 2: We found the same flight as before, so jsut keep displaying it for now
-    elif old_flight_id != "XXXX" and flight_id == old_flight_id:
+    # Case 2: We found the same flight as before, so just keep displaying it for now
+    elif False and old_flight_id != "XXXX" and flight_id == old_flight_id:
         w.feed()
-        is_showing_time = False
-        print("found the same flight as before")
         for i in range(5):
             w.feed()
             time.sleep(5)
@@ -142,61 +141,71 @@ while True:
     else:
         w.feed()
         old_flight_id = "XXXX"
-        def update_time(hours=None, minutes=None):
-            if hours >= 18 or hours < 6:  # evening hours to morning
-                clock_label.color = color[2]
-            else:
-                clock_label.color = color[3]  # daylight hours
-            if hours > 12:  # Handle times later than 12:59
-                hours -= 12
-            elif not hours:  # Handle times between 0:00 and 0:59
-                hours = 12
+        # def update_time(hours=None, minutes=None):
+        #     if hours >= 18 or hours < 6:  # evening hours to morning
+        #         clock_label.color = color[2]
+        #     else:
+        #         clock_label.color = color[3]  # daylight hours
+        #     if hours > 12:  # Handle times later than 12:59
+        #         hours -= 12
+        #     elif not hours:  # Handle times between 0:00 and 0:59
+        #         hours = 12
         
-            colon = ":"
+        #     colon = ":"
         
-            clock_label.text = "{hours}{colon}{minutes:02d}".format(
-                hours=hours, minutes=minutes, colon=colon
-            )
-            bbx, bby, bbwidth, bbh = clock_label.bounding_box
-            # Center the label
-            clock_label.x = round(display.width / 2 - bbwidth / 2)
-            clock_label.y = display.height // 2
+        #     clock_label.text = "{hours}{colon}{minutes:02d}".format(
+        #         hours=hours, minutes=minutes, colon=colon
+        #     )
+        #     bbx, bby, bbwidth, bbh = clock_label.bounding_box
+        #     # Center the label
+        #     clock_label.x = round(display.width / 2 - bbwidth / 2)
+        #     clock_label.y = display.height // 2
             
         print("Making request to update RTC")
         my_rtc = flights.new_get_time(matrixportal, requests, my_rtc)
+        current_time = my_rtc.datetime
+        hours = current_time.tm_hour
+        minutes = current_time.tm_min
+        clock.update_time(hours, minutes, display)
     
-        # check if we need to update the time  - only if the minutes change
-        if is_showing_time:
-            old_mins = minutes
-            current_time = my_rtc.datetime
-            minutes = current_time.tm_min
+        # # check if we need to update the time  - only if the minutes change
+        # if is_showing_time:
+        #     old_mins = minutes
+        #     current_time = my_rtc.datetime
+        #     minutes = current_time.tm_min
         
-        if not is_showing_time or minutes != old_mins: 
+        # if not is_showing_time or minutes != old_mins: 
+        #     current_time = my_rtc.datetime
+        #     hours = current_time.tm_hour
+        #     minutes = current_time.tm_min
+
+        #     clock.update_time(hours, minutes, display)
+            
+            # group = displayio.Group()  # Create a Group
+            # bitmap = displayio.Bitmap(64, 32, 2)  # Create a bitmap object,width, height, bit depth
+            # color = displayio.Palette(4)  # Create a color palette
+            # color[0] = 0x000000  # black background
+            # color[1] = 0x111184  # dark blue
+            # color[2] = 0xFED1DA  # light pink for day 
+            # color[3] = 0x85FF00  # greenish
+            
+            # # Create a TileGrid using the Bitmap and Palette
+            # tile_grid = displayio.TileGrid(bitmap, pixel_shader=color)
+            # group.append(tile_grid)  # Add the TileGrid to the Group
+            # display.root_group = group
+            # clock_font = bitmap_font.load_font("IBMPlexMono-Medium-24_jep.bdf")
+            # clock_label = Label(clock_font)
+
+            # update_time(hours, minutes, display)  # Display whatever time is on the board
+            # group.append(clock_label)  # add the clock label to the group
+        w.feed()
+        is_showing_time = True
+        for i in range(20):
+            w.feed()
             current_time = my_rtc.datetime
             hours = current_time.tm_hour
             minutes = current_time.tm_min
-            
-            group = displayio.Group()  # Create a Group
-            bitmap = displayio.Bitmap(64, 32, 2)  # Create a bitmap object,width, height, bit depth
-            color = displayio.Palette(4)  # Create a color palette
-            color[0] = 0x000000  # black background
-            color[1] = 0x111184  # dark blue
-            color[2] = 0xFED1DA  # light pink for day 
-            color[3] = 0x85FF00  # greenish
-            
-            # Create a TileGrid using the Bitmap and Palette
-            tile_grid = displayio.TileGrid(bitmap, pixel_shader=color)
-            group.append(tile_grid)  # Add the TileGrid to the Group
-            display.root_group = group
-            clock_font = bitmap_font.load_font("IBMPlexMono-Medium-24_jep.bdf")
-            clock_label = Label(clock_font)
-
-            update_time(hours, minutes)  # Display whatever time is on the board
-            group.append(clock_label)  # add the clock label to the group
-        w.feed()
-        is_showing_time = True
-        for i in range(5):
-            w.feed()
+            clock.update_time(hours, minutes, display)
             time.sleep(5)
             gc.collect()
  
