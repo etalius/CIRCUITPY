@@ -30,6 +30,7 @@ def setup_internet():
 def connect_to_wifi(esp):
     ssid = os.getenv("CIRCUITPY_WIFI_SSID")
     password = os.getenv("CIRCUITPY_WIFI_PASSWORD")
+    print("in connect to wifi")
     while not esp.is_connected:
         try:
             esp.connect_AP(ssid, password)
@@ -42,8 +43,9 @@ def check_connection(esp):
     print("Check and reconnect WiFi")
     attempts=10
     attempt=1
-    while (not not esp.is_connected) and attempt<attempts:
+    while (not esp.is_connected) and attempt<attempts:
         try:
+            print("tying to connect!")
             connect_to_wifi(esp)
         except OSError as e:
             print(e.__class__.__name__+"--------------------------------------")
