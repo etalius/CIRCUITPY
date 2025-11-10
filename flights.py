@@ -9,7 +9,7 @@ from microcontroller import watchdog as w
 from watchdog import WatchDogMode
 import time
 
-json_size = 14336
+json_size = 7_000
 json_bytes = bytearray(json_size)
 
 
@@ -142,7 +142,7 @@ def get_flight_details(fn, requests):
 
             byte_counter+=len(chunk)
             # find the comma before trail
-            trail_start=json_bytes.find((b",\"trail\":"))
+            trail_start=json_bytes.find((b",\"flightHistory\":"))
             if trail_start != -1:
                 json_bytes[trail_start] = ord(b"}")
                 for i in range(trail_start + 1, byte_counter):

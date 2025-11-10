@@ -92,10 +92,12 @@ while True:
             w.feed()
             gc.collect()
             text.print_label_contents()
+            gc.collect()
             planeG = plane.make_plane()
             w.feed()
             plane_animation(planeG)
             w.feed()
+            gc.collect()
     
             label1, label2, label3 = text.make_text_labels(display)
             if "united" in constants.airline_name.lower().strip():
@@ -119,17 +121,20 @@ while True:
             logoG.append(label2)
             logoG.append(label3)
             display.root_group = logoG
+            gc.collect()
             
             w.feed()
             time.sleep(5)
             label3.x=matrixportal.display.width+1
             label3.text=constants.label2_long
+            gc.collect()
             w.feed()
             scroll(label3)
             w.feed()
             label3.text=constants.label2_short
             bbx, bby, bbwidth, bbh = label3.bounding_box
             label3.x=round(display.width / 2 - bbwidth / 2)
+            gc.collect()
 
         for i in range(5):
             w.feed()
@@ -149,6 +154,7 @@ while True:
         w.feed()
         old_flight_id = "XXXX"
         is_showing_time = True
+        gc.collect()
 
         w.feed()
         print("Making request to update RTC")
@@ -157,6 +163,7 @@ while True:
         hours = current_time.tm_hour
         minutes = current_time.tm_min
         clock.update_time(hours, minutes, display)
+        gc.collect()
     
         w.feed()
         for i in range(5):
