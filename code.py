@@ -1,6 +1,3 @@
-
-
-
 import time
 from adafruit_matrixportal.matrixportal import MatrixPortal
 from adafruit_display_text.label import Label
