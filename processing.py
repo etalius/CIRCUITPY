@@ -160,5 +160,3 @@ def get_element_from_bytes(byte_string: bytes, i: int, j: int) -> int:
 # --- Example Usage and Verification ---
 if __name__ == '__main__':
     print(image_to_byte_string('/Users/etalius/Downloads/Screen Shot 2025-03-30 at 12.10.20 PM.jpeg'))
-
-
