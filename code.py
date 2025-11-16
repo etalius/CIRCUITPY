@@ -76,7 +76,7 @@ while True:
 
     # Case 1: We found a flight that is different than the flight before
     # or we did not have an old flight but we found one now!
-    if (flight_id and (old_flight_id == "XXXX"  or flight_id != old_flight_id)):
+    if True or (flight_id and (old_flight_id == "XXXX"  or flight_id != old_flight_id)):
         w.feed()
         is_showing_time = False
         old_flight_id = flight_id
@@ -97,6 +97,7 @@ while True:
             gc.collect()
     
             label1, label2, label3 = text.make_text_labels(display)
+
             if "united" in constants.airline_name.lower().strip():
                 logoG = airline_logos.get_logo_g(airline_logos.UNITED, airline_logos.UNITED_COLORS )
             elif "delta" in constants.airline_name.lower().strip():
@@ -111,6 +112,10 @@ while True:
                 logoG = airline_logos.get_logo_g(airline_logos.SOUTHWEST, airline_logos.SOUTHWEST_COLORS)
             elif 'alaska' in constants.airline_name.lower().strip():
                 logoG = airline_logos.get_logo_g(airline_logos.ALAKSA, airline_logos.ALASKA_COLORS)
+            elif 'american' in constants.airline_name.lower().strip():
+                logoG = airline_logos.get_logo_g(airline_logos.AMERICAN, airline_logos.AMERICAN_COLORS)
+            elif 'spirit' in constants.airline_name.lower().strip():
+                logoG = airline_logos.get_logo_g(airline_logos.SPIRIT, airline_logos.SPIRIT_COLORS)
             else:
                 logoG = plane.make_plane_for_logo()
         

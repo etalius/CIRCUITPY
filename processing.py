@@ -7,6 +7,8 @@ from typing import List
 import numpy as np
 # We use scikit-learn for KMeans clustering
 from sklearn.cluster import KMeans
+import airline_logos
+
 
 # Define the array dimensions and bits per element
 ARRAY_SIZE = 20
@@ -19,8 +21,8 @@ def compress_20x20_array(array_2d: List[List[int]]) -> bytes:
     Converts a 20x20 array (with values 0-3) into a compact byte string.
     Packs 4 elements (8 bits) into a single byte for maximum efficiency.
     """
-    if len(array_2d) != ARRAY_SIZE or any(len(row) != ARRAY_SIZE for row in array_2d):
-        raise ValueError(f"Input array must be {ARRAY_SIZE}x{ARRAY_SIZE}.")
+    # if len(array_2d) != ARRAY_SIZE or any(len(row) != ARRAY_SIZE for row in array_2d):
+    #     raise ValueError(f"Input array must be {ARRAY_SIZE}x{ARRAY_SIZE}.")
 
     byte_list = []
     element_buffer = []
@@ -46,6 +48,42 @@ def compress_20x20_array(array_2d: List[List[int]]) -> bytes:
                 element_buffer = []
 
     return bytes(byte_list)
+
+
+import numpy as np
+from scipy.ndimage import zoom
+
+def resize_image(image_array: np.ndarray) -> np.ndarray:
+    """
+    Resizes a 20x20 image array to a 16x16 array using nearest-neighbor interpolation.
+
+    This method is appropriate for image data with discrete values (like 0-3 colors)
+    as it selects the nearest existing value rather than calculating a new, potentially
+    non-integer, interpolated value.
+
+    Args:
+        image_array: A NumPy array of shape (20, 20) representing the image.
+
+    Returns:
+        A NumPy array of shape (16, 16).
+    """
+    # The target dimension is 16, and the source dimension is 20.
+    # The zoom factor is 16 / 20 = 0.8
+    zoom_factor = 18 / 20
+
+    # The zoom function handles the resizing:
+    # 'order=0' specifies nearest-neighbor interpolation, which is essential
+    # for preserving the discrete nature of your color values (0, 1, 2, 3).
+    resized_array = zoom(
+        input=image_array,
+        zoom=zoom_factor,
+        order=0,
+        mode='nearest' # Use nearest value for padding if needed, though not strictly required for downscaling
+    )
+
+    # Ensure the output still contains integer values (0, 1, 2, 3)
+    # The interpolation sometimes converts to float, so we cast it back to int.
+    return resized_array.astype(np.int32)
 
 def image_to_byte_string(filepath: str) -> bytes:
     """
@@ -98,53 +136,6 @@ def image_to_byte_string(filepath: str) -> bytes:
 
     return compressed_bytes
 
-def array_to_bytes(array: List[List[int]]) -> bytes:
-    """
-    Converts a 20x20 array (with values 0-3) into a compact byte string.
-
-    The compression works by packing 4 elements (4 * 2 bits = 8 bits) into
-    a single byte. Elements are packed from Most Significant Bit (MSB) to
-    Least Significant Bit (LSB).
-
-    Example of packing elements E3, E2, E1, E0 into one byte B:
-    B = (E3 << 6) | (E2 << 4) | (E1 << 2) | E0
-    """
-    if len(array) != ARRAY_SIZE or any(len(row) != ARRAY_SIZE for row in array):
-        raise ValueError(f"Input array must be {ARRAY_SIZE}x{ARRAY_SIZE}.")
-
-    byte_list = []
-    element_buffer = []
-
-    # Flatten the array and iterate through all 400 elements
-    for row in array:
-        for value in row:
-            if not (0 <= value <= 3):
-                raise ValueError(f"Value {value} is out of the allowed range (0-3).")
-            
-            # Append the 2-bit value to the buffer
-            element_buffer.append(value)
-            
-            # When the buffer reaches 4 elements, pack them into a byte
-            if len(element_buffer) == 4:
-                # E3 is the element packed into the MSB (shift 6)
-                E3, E2, E1, E0 = element_buffer
-                
-                # Combine the 4 elements into a single byte
-                packed_byte = (E3 << 6) | (E2 << 4) | (E1 << 2) | E0
-                byte_list.append(packed_byte)
-                
-                # Clear the buffer for the next byte
-                element_buffer = []
-
-    # If the array size were not perfectly divisible by 4, we would handle
-    # the remaining elements here, but for a 20x20 array (400 elements),
-    # this buffer should always be empty.
-    if element_buffer:
-        # This case is theoretical for 20x20 but included for robustness
-        raise RuntimeError("Buffer not empty after processing all 400 elements.")
-
-    # Convert the list of integers (bytes) into a final bytes object
-    return bytes(byte_list)
 
 def get_element_from_bytes(byte_string: bytes, i: int, j: int) -> int:
     linear_index = i * ARRAY_SIZE + j
@@ -159,4 +150,22 @@ def get_element_from_bytes(byte_string: bytes, i: int, j: int) -> int:
 
 # --- Example Usage and Verification ---
 if __name__ == '__main__':
-    print(image_to_byte_string('/Users/etalius/Downloads/Screen Shot 2025-03-30 at 12.10.20 PM.jpeg'))
+    byte_str = airline_logos.SOUTHWEST
+    # arr = np.zeros((20, 20))
+    # for i in range(20):
+    #     for j in range(20):
+    #         arr[i, j] = get_element_from_bytes(byte_str, i, j)
+    
+    # smaller_arr = resize_image(arr)
+    # smaller_str = compress_20x20_array(smaller_arr)
+    # print(smaller_str)
+
+    byte_str = image_to_byte_string('/Users/etalius/Downloads/spirit.png')
+    arr = np.zeros((20, 20))
+    for i in range(20):
+        for j in range(20):
+            arr[i, j] = get_element_from_bytes(byte_str, i, j)
+    
+    smaller_arr = resize_image(arr)
+    smaller_str = compress_20x20_array(smaller_arr)
+    print(smaller_str)
