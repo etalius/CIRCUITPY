@@ -18,6 +18,7 @@ import internet
 import airline_logos
 import text
 import clock
+import weather
 
 # Watchdog init to handle disconnecting from WiFi
 w.timeout=16 # timeout in seconds
@@ -73,10 +74,20 @@ while True:
         flight_id, local_time = response
     w.feed()
 
+    # labels = weather.show_weather(display)
+    # group = displayio.Group(scale=1, x=0, y=0)
+    # for l in labels:
+    #     group.append(l)
+    # display.root_group = group
+
+    # for i in range(100):
+    #     time.sleep(10)
+    #     w.feed()
+
 
     # Case 1: We found a flight that is different than the flight before
     # or we did not have an old flight but we found one now!
-    if True or (flight_id and (old_flight_id == "XXXX"  or flight_id != old_flight_id)):
+    if (flight_id and (old_flight_id == "XXXX"  or flight_id != old_flight_id)):
         w.feed()
         is_showing_time = False
         old_flight_id = flight_id
@@ -112,10 +123,6 @@ while True:
                 logoG = airline_logos.get_logo_g(airline_logos.SOUTHWEST, airline_logos.SOUTHWEST_COLORS)
             elif 'alaska' in constants.airline_name.lower().strip():
                 logoG = airline_logos.get_logo_g(airline_logos.ALAKSA, airline_logos.ALASKA_COLORS)
-            elif 'american' in constants.airline_name.lower().strip():
-                logoG = airline_logos.get_logo_g(airline_logos.AMERICAN, airline_logos.AMERICAN_COLORS)
-            elif 'spirit' in constants.airline_name.lower().strip():
-                logoG = airline_logos.get_logo_g(airline_logos.SPIRIT, airline_logos.SPIRIT_COLORS)
             else:
                 logoG = plane.make_plane_for_logo()
         
