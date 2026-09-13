@@ -4,15 +4,17 @@ import terminalio
 font = terminalio.FONT
 
 # Constants for pinging flightrader
-BOUNDS_BOX= '37.489,37.401,-122.212,-122.105' # SFO '37.64,37.59,-122.40,-122.35' 
+BOUNDS_BOX= '37.489,37.401,-122.212,-122.105' # SFO '37.64,37.59,-122.40,-122.35'
 QUERY_DELAY=5
 FLIGHT_SEARCH_HEAD="https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds="
 FLIGHT_SEARCH_TAIL="&faa=1&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=0&maxage=14400&gliders=0&stats=0&ems=1&limit=1"
 FLIGHT_SEARCH_URL=FLIGHT_SEARCH_HEAD+BOUNDS_BOX+FLIGHT_SEARCH_TAIL
 rheaders = {
-     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:106.0) Gecko/20100101 Firefox/106.0",
-     "cache-control": "no-store, no-cache, must-revalidate, post-check=0, pre-check=0",
-     "accept": "application/json"
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:131.0) Gecko/20100101 Firefox/131.0",
+     "cache-control": "no-store, no-cache, must-revalidate",
+     "accept": "application/json",
+     "Origin": "https://www.flightradar24.com",
+     "Referer": "https://www.flightradar24.com/",
 }
 
 # Plane Animation constants
@@ -50,6 +52,3 @@ def init_globals():
 
     global airline_name
     airline_name = ""
-
-
-

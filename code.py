@@ -28,8 +28,8 @@ w.mode = WatchDogMode.RESET
 constants.init_globals()
 
 # Set up WiFi and connect
-esp, requests = internet.setup_internet()
-esp = internet.connect_to_wifi(esp)
+esp, wifi = internet.setup_internet()
+internet.check_connection(esp, wifi)
 
 # Make matrix portal
 matrixportal = MatrixPortal(status_neopixel=board.NEOPIXEL,
@@ -41,7 +41,7 @@ w.feed()
 
 # Init the clock
 my_rtc = rtc.RTC()
-my_rtc = flights.new_get_time(matrixportal, requests, my_rtc)
+my_rtc = flights.new_get_time(matrixportal, wifi, my_rtc)
 
 def plane_animation(planeG):
     display.root_group = planeG
@@ -60,17 +60,28 @@ def scroll(line):
         
 old_flight_id = "XXXX"
 is_showing_time = False
+fail_streak = 0
 
 while True:
-    internet.check_connection(esp)
+    internet.check_connection(esp, wifi)
     w.feed()
-    response = flights.get_flights(matrixportal, requests)
+    response = flights.get_flights(matrixportal, wifi)
     w.feed()
-    
-    if not response:
+
+    if response is False:
+        fail_streak += 1
+        flight_id = None
+        local_time = None
+        print("Flight lookup failed, streak", fail_streak)
+        if fail_streak >= 3:
+            internet.recover_network(wifi)
+            fail_streak = 0
+    elif not response:
+        fail_streak = 0
         flight_id = None
         local_time = None
     else:
+        fail_streak = 0
         flight_id, local_time = response
     w.feed()
 
@@ -92,48 +103,52 @@ while True:
         is_showing_time = False
         old_flight_id = flight_id
         gc.collect()
-        flights.get_flight_details(flight_id, requests)
+        if flights.get_flight_details(flight_id, wifi):
+            flights.parse_details_json()
         old_flight_id = flight_id
         w.feed()
         gc.collect()
-        if flights.parse_details_json():
-            w.feed()
-            gc.collect()
-            text.print_label_contents()
-            gc.collect()
-            planeG = plane.make_plane()
-            w.feed()
-            plane_animation(planeG)
-            w.feed()
-            gc.collect()
-    
-            label1, label2, label3 = text.make_text_labels(display)
+        text.print_label_contents()
+        gc.collect()
+        planeG = plane.make_plane()
+        w.feed()
+        plane_animation(planeG)
+        w.feed()
+        gc.collect()
 
-            if "united" in constants.airline_name.lower().strip():
-                logoG = airline_logos.get_logo_g(airline_logos.UNITED, airline_logos.UNITED_COLORS )
-            elif "delta" in constants.airline_name.lower().strip():
-                logoG = airline_logos.get_logo_g(airline_logos.DELTA, airline_logos.DELTA_COLORS)
-            elif 'lufthansa' in constants.airline_name.lower().strip():
-                logoG = airline_logos.get_logo_g(airline_logos.LUTHANSA, airline_logos.LUTHANSA_COLORS)
-            elif 'british' in constants.airline_name.lower().strip():
-                logoG = airline_logos.get_logo_g(airline_logos.BRITISH, airline_logos.BRITISH_COLORS)
-            elif "canada" in constants.airline_name.lower().strip():
-                logoG = airline_logos.get_logo_g(airline_logos.AIR_CANADA, airline_logos.AIR_CANADA_COLORS)
-            elif 'southwest' in constants.airline_name.lower().strip():
-                logoG = airline_logos.get_logo_g(airline_logos.SOUTHWEST, airline_logos.SOUTHWEST_COLORS)
-            elif 'alaska' in constants.airline_name.lower().strip():
-                logoG = airline_logos.get_logo_g(airline_logos.ALAKSA, airline_logos.ALASKA_COLORS)
-            else:
-                logoG = plane.make_plane_for_logo()
-        
-            logoG.append(label1)
-            logoG.append(label2)
-            logoG.append(label3)
-            display.root_group = logoG
-            gc.collect()
-            
-            w.feed()
-            time.sleep(5)
+        label1, label2, label3 = text.make_text_labels(display)
+        airline = constants.airline_name.lower().strip()
+
+        if "united" in airline:
+            logoG = airline_logos.get_logo_g(airline_logos.UNITED, airline_logos.UNITED_COLORS )
+        elif "delta" in airline:
+            logoG = airline_logos.get_logo_g(airline_logos.DELTA, airline_logos.DELTA_COLORS)
+        elif 'lufthansa' in airline:
+            logoG = airline_logos.get_logo_g(airline_logos.LUTHANSA, airline_logos.LUTHANSA_COLORS)
+        elif 'british' in airline:
+            logoG = airline_logos.get_logo_g(airline_logos.BRITISH, airline_logos.BRITISH_COLORS)
+        elif "canada" in airline:
+            logoG = airline_logos.get_logo_g(airline_logos.AIR_CANADA, airline_logos.AIR_CANADA_COLORS)
+        elif 'southwest' in airline:
+            logoG = airline_logos.get_logo_g(airline_logos.SOUTHWEST, airline_logos.SOUTHWEST_COLORS)
+        elif 'alaska' in airline:
+            logoG = airline_logos.get_logo_g(airline_logos.ALAKSA, airline_logos.ALASKA_COLORS)
+        elif "american" in airline:
+            logoG = airline_logos.get_logo_g(airline_logos.AMERICAN, airline_logos.AMERICAN_COLORS)
+        elif "spirit" in airline:
+            logoG = airline_logos.get_logo_g(airline_logos.SPIRIT, airline_logos.SPIRIT_COLORS)
+        else:
+            logoG = plane.make_plane_for_logo()
+
+        logoG.append(label1)
+        logoG.append(label2)
+        logoG.append(label3)
+        display.root_group = logoG
+        gc.collect()
+
+        w.feed()
+        time.sleep(5)
+        if constants.label2_short and "-" in constants.label2_short and constants.label2_long:
             label3.x=matrixportal.display.width+1
             label3.text=constants.label2_long
             gc.collect()
@@ -167,7 +182,7 @@ while True:
 
         w.feed()
         print("Making request to update RTC")
-        my_rtc = flights.new_get_time(matrixportal, requests, my_rtc)
+        my_rtc = flights.new_get_time(matrixportal, wifi, my_rtc)
         current_time = my_rtc.datetime
         hours = current_time.tm_hour
         minutes = current_time.tm_min

@@ -1,0 +1,19 @@
+# Secrets
+settings.toml
+secrets.py
+
+# CircuitPython / macOS volume junk
+.Trash-1000
+.Trashes
+.fseventsd/
+.metadata_never_index
+._*
+__pycache__/
+boot_out.txt
+
+# Vendor libs and local scratch
+lib/
+sd/
+*.mpy
+f.json
+out.txt
