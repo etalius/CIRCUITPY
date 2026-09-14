@@ -5,11 +5,10 @@ import json
 import time
 import internet
 import lookups
+import view
 
 json_size = 7_000
 json_bytes = bytearray(json_size)
-
-SKIP_FEED_KEYS = ("version", "full_count", "stats")
 
 FLIGHT_LONG_DETAILS_HEAD="https://data-live.flightradar24.com/clickhandler/?flight="
 
@@ -49,30 +48,14 @@ def apply_feed_labels(info):
     constants.label3_long = lookups.aircraft_name(aircraft_code) if aircraft_code else ""
 
 
-def _pick_flight(response):
-    fallback = None
-    for flight_id, flight_info in response.items():
-        if flight_id in SKIP_FEED_KEYS:
-            continue
-        if not isinstance(flight_info, list) or len(flight_info) < 8:
-            continue
-        on_ground = flight_info[14] if len(flight_info) > 14 else 0
-        flight_number = _text(flight_info[13]) if len(flight_info) > 13 else ""
-        if on_ground:
-            continue
-        picked = (flight_id, flight_info)
-        if flight_number:
-            return picked
-        if fallback is None:
-            fallback = picked
-    return fallback
-
-
 def get_flights(matrixportal, requests):
-    matrixportal.url = constants.FLIGHT_SEARCH_URL
+    view.update_visibility(requests)
+    url = view.feed_url()
+    print("range km", view.range_km(), "bounds", view.bounds_box())
+    matrixportal.url = url
     response_raw = None
     try:
-        response_raw = requests.get(url=constants.FLIGHT_SEARCH_URL, headers=constants.rheaders)
+        response_raw = requests.get(url=url, headers=constants.rheaders)
         response = response_raw.json()
     except Exception as e:
         print(e.__class__.__name__ + "--------------------------------------")
@@ -86,7 +69,7 @@ def get_flights(matrixportal, requests):
         print("Unexpected flight feed payload")
         return False
 
-    picked = _pick_flight(response)
+    picked = view.pick_flight(response)
     if not picked:
         return None
 

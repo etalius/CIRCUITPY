@@ -43,6 +43,13 @@ w.feed()
 my_rtc = rtc.RTC()
 my_rtc = flights.new_get_time(matrixportal, wifi, my_rtc)
 
+weather.ensure(wifi)
+now = my_rtc.datetime
+weather.show(display, now.tm_hour, now.tm_min)
+for i in range(4):
+    w.feed()
+    time.sleep(5)
+
 def plane_animation(planeG):
     display.root_group = planeG
     for i in range(-12,matrixportal.display.width+24, 1):
@@ -61,6 +68,7 @@ def scroll(line):
 old_flight_id = "XXXX"
 is_showing_time = False
 fail_streak = 0
+idle_weather = True
 
 while True:
     internet.check_connection(esp, wifi)
@@ -111,6 +119,12 @@ while True:
         text.print_label_contents()
         gc.collect()
         planeG = plane.make_plane()
+        elev = constants.plane_elev_deg
+        if elev < 0:
+            elev = 0
+        if elev > 40:
+            elev = 40
+        planeG.y = 14 - int(elev / 40 * 10)
         w.feed()
         plane_animation(planeG)
         w.feed()
@@ -143,6 +157,7 @@ while True:
         logoG.append(label1)
         logoG.append(label2)
         logoG.append(label3)
+        logoG.append(text.make_position_marker(display))
         display.root_group = logoG
         gc.collect()
 
@@ -173,31 +188,39 @@ while True:
             time.sleep(5)
             gc.collect()
     
-    # Case 3: we did not find a new flight and we didn't have one! 
+    # Case 3: no flight — alternate weather and the clock
     else:
         w.feed()
         old_flight_id = "XXXX"
-        is_showing_time = True
         gc.collect()
 
-        w.feed()
-        print("Making request to update RTC")
-        my_rtc = flights.new_get_time(matrixportal, wifi, my_rtc)
-        current_time = my_rtc.datetime
-        hours = current_time.tm_hour
-        minutes = current_time.tm_min
-        clock.update_time(hours, minutes, display)
-        gc.collect()
-    
-        w.feed()
-        for i in range(5):
-            w.feed()
+        if idle_weather:
+            is_showing_time = False
+            weather.ensure(wifi)
             current_time = my_rtc.datetime
-            hours = current_time.tm_hour
-            minutes = current_time.tm_min
-            clock.update_time(hours, minutes, display)
-            time.sleep(5)
+            weather.show(display, current_time.tm_hour, current_time.tm_min)
+            idle_weather = False
             gc.collect()
+            w.feed()
+            for i in range(5):
+                w.feed()
+                time.sleep(5)
+                gc.collect()
+        else:
+            is_showing_time = True
+            print("Making request to update RTC")
+            my_rtc = flights.new_get_time(matrixportal, wifi, my_rtc)
+            current_time = my_rtc.datetime
+            clock.update_time(current_time.tm_hour, current_time.tm_min, display)
+            idle_weather = True
+            gc.collect()
+            w.feed()
+            for i in range(5):
+                w.feed()
+                current_time = my_rtc.datetime
+                clock.update_time(current_time.tm_hour, current_time.tm_min, display)
+                time.sleep(5)
+                gc.collect()
  
 
     

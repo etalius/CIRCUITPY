@@ -53,8 +53,8 @@ def get_logo_g(logo, colors):
             planeBmp[j, i] = get_element_from_bytes(logo, i, j)
 
     planeTg= displayio.TileGrid(planeBmp, pixel_shader=planePalette)
-    planeTg.x = 3
-    planeTg.y = 2
+    planeTg.x = 2
+    planeTg.y = 1
     planeG=displayio.Group(scale=1, x=0, y=0)
     planeG.append(planeTg)
     return planeG

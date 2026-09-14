@@ -69,8 +69,8 @@ def make_plane_for_logo():
 
     # planeBmpNew = scale_plane(planeBmp, (20, 20))
     planeTg= displayio.TileGrid(planeBmp, pixel_shader=planePalette)
-    planeTg.x = 9
-    planeTg.y = 6
+    planeTg.x = 8
+    planeTg.y = 5
     planeG=displayio.Group(scale=1, x=0, y=0)
     planeG.append(planeTg)
     return planeG

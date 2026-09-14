@@ -1,113 +1,209 @@
-import constants
+import time
+import gc
+from microcontroller import watchdog as w
+from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text.label import Label
 import displayio
+import constants
+import internet
 
-# def make_plane(big_plane=False):
-#     planeBmp = displayio.Bitmap(12, 12, 2)
-#     planePalette = displayio.Palette(2)
-#     planePalette[1] = 0xEE82EE
-#     planePalette[0] = 0x000000
-#     planeBmp[6,0]=planeBmp[6,1]=planeBmp[5,1]=planeBmp[4,2]=planeBmp[5,2]=planeBmp[6,2]=1
-#     planeBmp[9,3]=planeBmp[5,3]=planeBmp[4,3]=planeBmp[3,3]=1
-#     planeBmp[1,4]=planeBmp[2,4]=planeBmp[3,4]=planeBmp[4,4]=planeBmp[5,4]=planeBmp[6,4]=planeBmp[7,4]=planeBmp[8,4]=planeBmp[9,4]=1
-#     planeBmp[1,5]=planeBmp[2,5]=planeBmp[3,5]=planeBmp[4,5]=planeBmp[5,5]=planeBmp[6,5]=planeBmp[7,5]=planeBmp[8,5]=planeBmp[9,5]=1
-#     planeBmp[9,6]=planeBmp[5,6]=planeBmp[4,6]=planeBmp[3,6]=1
-#     planeBmp[6,9]=planeBmp[6,8]=planeBmp[5,8]=planeBmp[4,7]=planeBmp[5,7]=planeBmp[6,7]=1
+_at = 0
+vis_km = constants.DEFAULT_VIS_KM
+_temp = None
+_high = None
+_low = None
+_code = 0
+_ok = False
 
-#     planeFlipped = flip_plane(planeBmp)
+ICON = 12
+SUN = (
+    (0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0),
+    (0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0),
+    (0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0),
+    (0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0),
+    (0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0),
+    (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    (0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0),
+    (0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0),
+    (0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0),
+    (0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0),
+    (0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0),
+)
+CLOUD = (
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0),
+    (0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0),
+    (0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0),
+    (0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0),
+    (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    (0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+)
+RAIN = (
+    (0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0),
+    (0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0),
+    (0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0),
+    (0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0),
+    (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0),
+    (0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0),
+    (0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0),
+    (0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+)
+SNOW = (
+    (0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0),
+    (0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0),
+    (0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0),
+    (0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0),
+    (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0),
+    (0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1),
+    (0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+)
+PARTLY = (
+    (0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0),
+    (0, 0, 0, 1, 1, 1, 0, 0, 2, 2, 0, 0),
+    (0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 0),
+    (0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2),
+    (1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2),
+    (0, 0, 1, 1, 0, 2, 2, 2, 2, 2, 2, 2),
+    (0, 0, 0, 1, 0, 0, 2, 2, 2, 2, 2, 0),
+    (0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+    (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+)
 
-#     planeTg= displayio.TileGrid(planeFlipped, pixel_shader=planePalette)
-#     planeG=displayio.Group(scale=1, x=0, y=10)
-#     planeG.append(planeTg)
-#     return planeG
+
+def _icon_for(code):
+    if code <= 0:
+        return SUN, (0xFCD34D,)
+    if code <= 2:
+        return PARTLY, (0xFCD34D, 0x9CA3AF)
+    if code <= 3 or code in (45, 48):
+        return CLOUD, (0x9CA3AF,)
+    if 71 <= code <= 77 or 85 <= code <= 86:
+        return SNOW, (0xE5E7EB,)
+    return RAIN, (0x60A5FA,)
 
 
-SUNSET = [
-    # Row 0 (Sky)
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    # Row 1 (Outer Rays)
-    [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-    # Row 2 (Central Ray)
-    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    # Row 3 (Mid Rays)
-    [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-    # Row 4 (Inner Rays)
-    [0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
-    # Row 5 (Top of Sun - 3 pixels wide)
-    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-    # Row 6 (Base of Sun - 5 pixels wide)
-    [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-    # Row 7 (Horizon Line)
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-]
-
-def show_weather(display):
-    font = constants.font
-    ROW_ONE_COLOUR=constants.ROW_ONE_COLOUR
-    ROW_TWO_COLOUR=constants.ROW_TWO_COLOUR
-    ROW_THREE_COLOUR=constants.ROW_THREE_COLOUR
-    
-    high = Label(
-        font,
-        color=ROW_ONE_COLOUR,
-        text="77")
-    bbx, bby, bbwidth, bbh = high.bounding_box
-    high.x = round(24 + (19 - bbwidth) // 2)
-    high.y = display.height // 6 + 1 
-
-    dotBmp = displayio.Bitmap(1, 1, 1)
-    dotPalette = displayio.Palette(1)
-    dotPalette[0] = ROW_ONE_COLOUR
-    dotTg = displayio.TileGrid(dotBmp, pixel_shader=dotPalette)
-    dotTg.x = high.x + bbwidth
-    dotTg. y = 2
+def _num(value):
+    return int(round(float(value)))
 
 
-    low = Label(
-        font,
-        color=ROW_ONE_COLOUR,
-        text="56")
-    bbx, bby, bbwidth, bbh = low.bounding_box
-    low.x = round(43 + (19 - bbwidth) // 2)
-    print("width: ", display.width, "bbwidth ", bbwidth, "x ", low.x)
-    low.y = display.height // 6 + 1 
+def _first(value):
+    if isinstance(value, list):
+        return value[0]
+    return value
 
-    dotBmp = displayio.Bitmap(1, 1, 1)
-    dotPalette = displayio.Palette(1)
-    dotPalette[0] = ROW_ONE_COLOUR
-    dotTg2 = displayio.TileGrid(dotBmp, pixel_shader=dotPalette)
-    dotTg2.x = low.x + bbwidth
-    dotTg2. y = 2
-    
-    time = Label(
-        font,
-        color=ROW_TWO_COLOUR,
-        text="5:30")
-    bbx, bby, bbwidth, bbh = time.bounding_box
-    time.x = round(40)
-    time.y = display.height // 6 * 3 + 1
-    print("time width ", bbwidth)
-    
-    label3 = Label(
-        font,
-        color=ROW_THREE_COLOUR,
-        text="<list of future weather>")
-    bbx, bby, bbwidth, bbh = label3.bounding_box
-    label3.x = round(display.width / 2 - bbwidth / 2)
-    label3.y = display.height // 6 * 5 + 2
 
-    sunBmp = displayio.Bitmap(18, 8, 3)
-    sunPalette = displayio.Palette(3)
-    sunPalette[0] = 0x000000
-    sunPalette[1] = 0xFCD34D
-    sunPalette[2] = 0x4B5563
+def ensure(requests):
+    global _at, vis_km, _temp, _high, _low, _code, _ok
+    now = time.monotonic()
+    if _ok and _at and (now - _at) < constants.VIS_CACHE_S:
+        return True
+    response_raw = None
+    try:
+        w.feed()
+        response_raw = requests.get(url=constants.WEATHER_URL)
+        data = response_raw.json()
+        print("weather json", data)
+        current = data["current"] if "current" in data else data["current_weather"]
+        daily = data["daily"]
+        if "temperature_2m" in current:
+            _temp = _num(current["temperature_2m"])
+        else:
+            _temp = _num(current["temperature"])
+        if "weather_code" in current:
+            _code = _num(current["weather_code"])
+        else:
+            _code = _num(current["weathercode"])
+        _high = _num(_first(daily["temperature_2m_max"]))
+        _low = _num(_first(daily["temperature_2m_min"]))
+        if "visibility" in current and current["visibility"] is not None:
+            vis_km = max(1.0, float(current["visibility"]) / 1000.0)
+        _ok = True
+        _at = now
+        print("weather parsed", _temp, _high, _low, _code, "vis", vis_km)
+        return True
+    except Exception as e:
+        print("weather lookup failed", e.__class__.__name__, e)
+        if not _ok:
+            vis_km = constants.DEFAULT_VIS_KM
+        return _ok
+    finally:
+        internet.close_response(response_raw)
+        w.feed()
 
-    for i in range(8):
-        for j in range(18):
-            sunBmp[j, i] = SUNSET[i][j]
 
-    sunTg = displayio.TileGrid(sunBmp, pixel_shader=sunPalette)
-    sunTg.x = 20
-    sunTg.y = display.height // 6 * 3 + 1
+def show(display, hours, minutes):
+    group = displayio.Group()
+    gc.collect()
 
-    return high, low, time, label3, dotTg, dotTg2, sunTg
+    if _ok:
+        icon, colors = _icon_for(_code)
+        bmp = displayio.Bitmap(ICON, ICON, 1 + len(colors))
+        pal = displayio.Palette(1 + len(colors))
+        pal[0] = 0x000000
+        for i, color in enumerate(colors):
+            pal[i + 1] = color
+        for row in range(ICON):
+            for col in range(ICON):
+                bmp[col, row] = icon[row][col]
+        tg = displayio.TileGrid(bmp, pixel_shader=pal)
+        group.append(tg)
+
+        clock_font = bitmap_font.load_font("IBMPlexMono-Medium-24_jep.bdf")
+        temp = Label(clock_font, color=0xFFFFFF, text=str(_temp))
+        deg = Label(constants.font, color=0xFFFFFF, text="\u00b0")
+        hi = Label(constants.font, color=0xEE82EE, text="H" + str(_high))
+        lo = Label(constants.font, color=0x57B9FF, text="L" + str(_low))
+        _, _, tw, _ = temp.bounding_box
+        _, _, hw, _ = hi.bounding_box
+        _, _, lw, _ = lo.bounding_box
+        rail = hw if hw > lw else lw
+        gap = 3
+        icon_w = ICON
+        total = icon_w + gap + tw + gap + rail
+        x0 = (display.width - total) // 2
+        if x0 < 1:
+            x0 = 1
+        tg.x = x0
+        tg.y = (display.height - ICON) // 2
+        temp.x = x0 + icon_w + gap
+        temp.y = display.height // 2
+        deg.x = temp.x + tw - 1
+        deg.y = display.height // 2 - 8
+        rail_x = temp.x + tw + gap
+        if rail_x + rail > display.width - 1:
+            rail_x = display.width - 1 - rail
+        hi.x = rail_x
+        lo.x = rail_x
+        hi.y = display.height // 2 - 6
+        lo.y = display.height // 2 + 6
+        group.append(temp)
+        group.append(deg)
+        group.append(hi)
+        group.append(lo)
+        gc.collect()
+    else:
+        msg = Label(constants.font, color=0xFFFFFF, text="no wx")
+        _, _, bw, _ = msg.bounding_box
+        msg.x = round(display.width / 2 - bw / 2)
+        msg.y = display.height // 2
+        group.append(msg)
+
+    display.root_group = group
