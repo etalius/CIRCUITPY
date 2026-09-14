@@ -1,24 +1,13 @@
 import time
 from adafruit_matrixportal.matrixportal import MatrixPortal
-from adafruit_display_text.label import Label
 from microcontroller import watchdog as w
 from watchdog import WatchDogMode
-import adafruit_requests as requests
-from adafruit_bitmap_font import bitmap_font
-from adafruit_matrixportal.network import Network
 import board
 import gc
-import displayio
 import rtc
 
-import plane
-import flights
 import constants
 import internet
-import airline_logos
-import text
-import clock
-import weather
 
 # Watchdog init to handle disconnecting from WiFi
 w.timeout=16 # timeout in seconds
@@ -32,6 +21,7 @@ esp, wifi = internet.setup_internet()
 internet.check_connection(esp, wifi)
 
 # Make matrix portal
+gc.collect()
 matrixportal = MatrixPortal(status_neopixel=board.NEOPIXEL,
                             debug=True,
                             esp=esp,
@@ -39,13 +29,26 @@ matrixportal = MatrixPortal(status_neopixel=board.NEOPIXEL,
 display = matrixportal.display
 w.feed()
 
+import plane
+import flights
+import airline_logos
+import text
+import clock
+import weather
+gc.collect()
+w.feed()
+
 # Init the clock
 my_rtc = rtc.RTC()
 my_rtc = flights.new_get_time(matrixportal, wifi, my_rtc)
 
-weather.ensure(wifi)
-now = my_rtc.datetime
-weather.show(display, now.tm_hour, now.tm_min)
+try:
+    weather.ensure(wifi)
+    now = my_rtc.datetime
+    weather.show(display, now.tm_hour, now.tm_min)
+except Exception as e:
+    print("boot wx", e.__class__.__name__)
+    w.feed()
 for i in range(4):
     w.feed()
     time.sleep(5)
@@ -198,7 +201,11 @@ while True:
             is_showing_time = False
             weather.ensure(wifi)
             current_time = my_rtc.datetime
-            weather.show(display, current_time.tm_hour, current_time.tm_min)
+            try:
+                weather.show(display, current_time.tm_hour, current_time.tm_min)
+            except Exception as e:
+                print("weather show failed", e.__class__.__name__, e)
+                w.feed()
             idle_weather = False
             gc.collect()
             w.feed()

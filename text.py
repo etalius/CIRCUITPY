@@ -13,18 +13,17 @@ def make_text_labels(display):
         color=ROW_ONE_COLOUR,
         text=constants.label1_short)
     bbx, bby, bbwidth, bbh = label1.bounding_box
-    label1.x = round((display.width  + 24) / 2 - bbwidth / 2)
-    label1.y = display.height // 6 
-    
-    
+    label1.x = round((display.width + 24) / 2 - bbwidth / 2)
+    label1.y = display.height // 6
+
     label2 = Label(
         font,
         color=ROW_TWO_COLOUR,
         text=constants.label3_short)
     bbx, bby, bbwidth, bbh = label2.bounding_box
-    label2.x = round((display.width + 24)  / 2 - bbwidth / 2)
+    label2.x = round((display.width + 24) / 2 - bbwidth / 2)
     label2.y = display.height // 6 * 3
-    
+
     label3 = Label(
         font,
         color=ROW_THREE_COLOUR,

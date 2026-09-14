@@ -21,7 +21,7 @@ MIN_APPARENT_DEG = 0.16
 VIS_CACHE_S = 900
 SKIP_FEED_KEYS = ("version", "full_count", "stats")
 VIS_URL = "http://api.open-meteo.com/v1/forecast?latitude=37.41&longitude=-122.11&current_weather=true"
-WEATHER_URL = "http://api.open-meteo.com/v1/forecast?latitude=37.41&longitude=-122.11&temperature_unit=fahrenheit&current=temperature_2m,weather_code,visibility&daily=temperature_2m_max,temperature_2m_min&forecast_days=1"
+WEATHER_URL = "http://api.open-meteo.com/v1/forecast?latitude=37.41&longitude=-122.11&current_weather=true&temperature_unit=fahrenheit&daily=temperature_2m_max,temperature_2m_min&forecast_days=1"
 QUERY_DELAY=5
 FLIGHT_SEARCH_HEAD="https://data-cloud.flightradar24.com/zones/fcgi/feed.js?bounds="
 FLIGHT_SEARCH_TAIL="&faa=1&satellite=1&mlat=1&flarm=1&adsb=1&gnd=0&air=1&vehicles=0&estimated=0&maxage=14400&gliders=0&stats=0&ems=1&limit=15"
